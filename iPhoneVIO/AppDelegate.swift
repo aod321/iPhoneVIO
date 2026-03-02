@@ -9,7 +9,7 @@ import UIKit
 import SwiftUI
 
 final class LandscapeHostingController<Content: View>: UIHostingController<Content> {
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscapeRight }
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .landscapeRight }
     override var shouldAutorotate: Bool { false }
 }
@@ -20,7 +20,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        return .landscape
+        return .landscapeRight
     }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {

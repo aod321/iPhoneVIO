@@ -113,7 +113,7 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
     private var lastHapticStateChangeTime: Double = 0
     private let hapticCooldown: Double = 0.5   // min 0.5s between transitions
 
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscapeRight }
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .landscapeRight }
     override var shouldAutorotate: Bool { false }
 
