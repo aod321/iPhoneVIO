@@ -72,7 +72,6 @@ struct ContentView : View {
 
                     NavigationLink {
                         DataManagementView(
-                            rapidDriverURL: bonjourManager.rapidDriverURL,
                             isRecording: recordingController.isRecording
                         )
                     } label: {

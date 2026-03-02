@@ -126,13 +126,6 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
         arucoCenterLayer.frame = scnView.bounds
     }
 
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        guard !hasStartedARSession else { return }
-        hasStartedARSession = true
-        setupARSession()
-    }
-
     func setupARSession() {
         hasSentMetadata = false
         sessionId = UUID().uuidString
@@ -1191,7 +1184,21 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         scnView.session.pause()
-        hasStartedARSession = false
+        // Do NOT reset hasStartedARSession — navigation to child views (e.g. DataManagementView)
+        // triggers viewWillDisappear, and resetting causes setupARSession() to re-run on return,
+        // which restarts Bonjour advertising and breaks rapid_driver mDNS discovery.
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard !hasStartedARSession else {
+            // Resume AR session after returning from a child view
+            let configuration = createARConfiguration()
+            scnView.session.run(configuration)
+            return
+        }
+        hasStartedARSession = true
+        setupARSession()
     }
 
     static func deviceModelIdentifier() -> String {

@@ -39,12 +39,32 @@ class BonjourManager: ObservableObject {
     private let rapidDriverQueue = DispatchQueue(label: "com.iphoneVIO.bonjour.rapiddriver")
     private var resolveConnection: NWConnection?
 
+    // Retry state for advertising
+    private var lastAdvertiseSessionId: String = ""
+    private var lastAdvertiseDeviceModel: String = ""
+    private var advertiseRetryCount: Int = 0
+    private static let maxAdvertiseRetries = 5
+
     private init() {}
 
     // MARK: - Advertise _iphonevio._tcp
 
     func startAdvertising(sessionId: String = "", deviceModel: String = "") {
+        // Never restart if already advertising — brief gap kills rapid_driver discovery
+        if isAdvertising {
+            print("[Bonjour] Already advertising, skipping restart")
+            return
+        }
         stopAdvertising()
+        lastAdvertiseSessionId = sessionId
+        lastAdvertiseDeviceModel = deviceModel
+        advertiseRetryCount = 0
+        createAndStartListener()
+    }
+
+    private func createAndStartListener() {
+        listener?.cancel()
+        listener = nil
 
         do {
             // NWListener on an ephemeral port — we only need the Bonjour registration,
@@ -53,6 +73,7 @@ class BonjourManager: ObservableObject {
             listener = try NWListener(using: params)
         } catch {
             print("[Bonjour] Failed to create listener: \(error)")
+            scheduleAdvertiseRetry()
             return
         }
 
@@ -60,29 +81,34 @@ class BonjourManager: ObservableObject {
 
         // Bonjour service registration
         let txtRecord = NWTXTRecord([
-            "sessionId": sessionId,
-            "deviceModel": deviceModel,
+            "sessionId": lastAdvertiseSessionId,
+            "deviceModel": lastAdvertiseDeviceModel,
             "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         ])
         listener.service = NWListener.Service(
-            name: "\(deviceModel)-iPhoneVIO",
+            name: "\(lastAdvertiseDeviceModel)-iPhoneVIO",
             type: "_iphonevio._tcp",
             txtRecord: txtRecord
         )
 
         listener.stateUpdateHandler = { [weak self] state in
             DispatchQueue.main.async {
+                guard let self = self else { return }
                 switch state {
                 case .ready:
-                    self?.isAdvertising = true
-                    if let port = self?.listener?.port {
+                    self.advertiseRetryCount = 0
+                    self.isAdvertising = true
+                    if let port = self.listener?.port {
                         print("[Bonjour] Advertising _iphonevio._tcp on port \(port)")
                     }
                 case .failed(let error):
                     print("[Bonjour] Listener failed: \(error)")
-                    self?.isAdvertising = false
+                    self.isAdvertising = false
+                    self.listener?.cancel()
+                    self.listener = nil
+                    self.scheduleAdvertiseRetry()
                 case .cancelled:
-                    self?.isAdvertising = false
+                    self.isAdvertising = false
                 default:
                     break
                 }
@@ -97,7 +123,22 @@ class BonjourManager: ObservableObject {
         listener.start(queue: advertiseQueue)
     }
 
+    private func scheduleAdvertiseRetry() {
+        guard advertiseRetryCount < Self.maxAdvertiseRetries else {
+            print("[Bonjour] Gave up advertising after \(Self.maxAdvertiseRetries) retries")
+            return
+        }
+        advertiseRetryCount += 1
+        let delay = Double(min(1 << advertiseRetryCount, 16))  // 2, 4, 8, 16, 16s
+        print("[Bonjour] Retrying advertising in \(delay)s (attempt \(advertiseRetryCount)/\(Self.maxAdvertiseRetries))")
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self = self, self.listener == nil else { return }
+            self.createAndStartListener()
+        }
+    }
+
     func stopAdvertising() {
+        advertiseRetryCount = Self.maxAdvertiseRetries  // prevent pending retries from firing
         listener?.cancel()
         listener = nil
         DispatchQueue.main.async {
@@ -108,7 +149,10 @@ class BonjourManager: ObservableObject {
     // MARK: - Browse _vioserver._tcp
 
     func startBrowsing() {
-        stopBrowsing()
+        if browser != nil {
+            print("[Bonjour] Already browsing _vioserver._tcp, skipping restart")
+            return
+        }
 
         let descriptor = NWBrowser.Descriptor.bonjour(type: "_vioserver._tcp", domain: nil)
         let params = NWParameters()
@@ -116,12 +160,16 @@ class BonjourManager: ObservableObject {
 
         browser = NWBrowser(for: descriptor, using: params)
 
-        browser?.stateUpdateHandler = { state in
+        browser?.stateUpdateHandler = { [weak self] state in
             switch state {
             case .ready:
                 print("[Bonjour] Browsing for _vioserver._tcp")
             case .failed(let error):
-                print("[Bonjour] Browser failed: \(error)")
+                print("[Bonjour] Browser failed: \(error), restarting…")
+                self?.browser?.cancel()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self?.startBrowsing()
+                }
             default:
                 break
             }
@@ -155,7 +203,10 @@ class BonjourManager: ObservableObject {
     // MARK: - Browse _rapiddriver._tcp
 
     func startRapidDriverBrowsing() {
-        stopRapidDriverBrowsing()
+        if rapidDriverBrowser != nil {
+            print("[Bonjour] Already browsing _rapiddriver._tcp, skipping restart")
+            return
+        }
 
         let descriptor = NWBrowser.Descriptor.bonjour(type: "_rapiddriver._tcp", domain: nil)
         let params = NWParameters()
@@ -163,12 +214,16 @@ class BonjourManager: ObservableObject {
 
         rapidDriverBrowser = NWBrowser(for: descriptor, using: params)
 
-        rapidDriverBrowser?.stateUpdateHandler = { state in
+        rapidDriverBrowser?.stateUpdateHandler = { [weak self] state in
             switch state {
             case .ready:
                 print("[Bonjour] Browsing for _rapiddriver._tcp")
             case .failed(let error):
-                print("[Bonjour] RapidDriver browser failed: \(error)")
+                print("[Bonjour] RapidDriver browser failed: \(error), restarting…")
+                self?.rapidDriverBrowser?.cancel()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self?.startRapidDriverBrowsing()
+                }
             default:
                 break
             }

@@ -6,10 +6,10 @@
 //
 
 import SwiftUI
+import Combine
 
 struct DataManagementView: View {
     @StateObject private var controller = DataManagementController()
-    let rapidDriverURL: URL?
     let isRecording: Bool
 
     @Environment(\.dismiss) private var dismiss
@@ -64,11 +64,17 @@ struct DataManagementView: View {
             }
         }
         .onAppear {
-            controller.updateBaseURL(rapidDriverURL)
+            controller.updateBaseURL(BonjourManager.shared.rapidDriverURL)
             Task { await controller.fetchRecordings() }
         }
         .onDisappear {
             controller.stopReplayPolling()
+        }
+        .onReceive(BonjourManager.shared.$rapidDriverURL) { url in
+            controller.updateBaseURL(url)
+            if url != nil {
+                Task { await controller.fetchRecordings() }
+            }
         }
         // Single delete confirmation
         .alert("确认删除", isPresented: $showDeleteConfirm) {
