@@ -105,7 +105,7 @@ struct ContentView : View {
             }
             // Teleop control panel (bottom-trailing)
             .overlay(alignment: .bottomTrailing) {
-                TeleopControlPanel(viewController: viewController)
+                TeleopControlPanel(viewController: viewController, bonjourManager: bonjourManager)
                     .padding(.trailing, 8)
                     .padding(.bottom, 40)
             }
@@ -131,26 +131,39 @@ struct ContentView : View {
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: recordingController.lastError)
-            // Auto-connect to first discovered server
-            .onChange(of: bonjourManager.discoveredServers) { _, servers in
+            // Auto-connect to first teleop server (priority)
+            .onChange(of: bonjourManager.teleopServers) { _, servers in
                 if !autoConnected && !isConnected && !servers.isEmpty {
                     let server = servers[0]
-                    print("[Bonjour] Auto-connecting to \(server.name)")
+                    print("[Bonjour] Auto-connecting to teleop: \(server.name)")
                     ARManager.shared.actionStream.send(.connectToEndpoint(server.endpoint))
                     autoConnected = true
                 }
             }
-            // Retry on disconnect: reset flag and schedule reconnect
+            // Fallback: auto-connect to _vioserver._tcp (node_iphone via Raspberry Pi)
+            .onChange(of: bonjourManager.discoveredServers) { _, servers in
+                if !autoConnected && !isConnected && bonjourManager.teleopServers.isEmpty && !servers.isEmpty {
+                    let server = servers[0]
+                    print("[Bonjour] Auto-connecting to vioserver: \(server.name)")
+                    ARManager.shared.actionStream.send(.connectToEndpoint(server.endpoint))
+                    autoConnected = true
+                }
+            }
+            // Retry on disconnect: teleop first, then vioserver fallback
             .onChange(of: viewController.connectionStatus) { _, status in
                 if status == .disconnected {
                     autoConnected = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        if viewController.connectionStatus == .disconnected,
-                           !bonjourManager.discoveredServers.isEmpty {
-                            let server = bonjourManager.discoveredServers[0]
-                            print("[Bonjour] Reconnecting to \(server.name)")
-                            ARManager.shared.actionStream.send(.connectToEndpoint(server.endpoint))
-                            autoConnected = true
+                        if viewController.connectionStatus == .disconnected {
+                            if let server = bonjourManager.teleopServers.first {
+                                print("[Bonjour] Reconnecting to teleop: \(server.name)")
+                                ARManager.shared.actionStream.send(.connectToEndpoint(server.endpoint))
+                                autoConnected = true
+                            } else if let server = bonjourManager.discoveredServers.first {
+                                print("[Bonjour] Reconnecting to vioserver: \(server.name)")
+                                ARManager.shared.actionStream.send(.connectToEndpoint(server.endpoint))
+                                autoConnected = true
+                            }
                         }
                     }
                 }
@@ -202,6 +215,22 @@ struct MDNSStatusPanel: View {
         return .gray
     }
 
+    var teleopStatusText: String {
+        if connectionStatus == .connected && !bonjourManager.teleopServers.isEmpty {
+            return "Connected"
+        } else if !bonjourManager.teleopServers.isEmpty {
+            return "Found"
+        } else {
+            return "Searching"
+        }
+    }
+
+    var teleopStatusColor: Color {
+        if connectionStatus == .connected && !bonjourManager.teleopServers.isEmpty { return .green }
+        if !bonjourManager.teleopServers.isEmpty { return .yellow }
+        return .gray
+    }
+
     var controlStatusText: String {
         bonjourManager.rapidDriverURL != nil ? "Found" : "Searching"
     }
@@ -227,6 +256,9 @@ struct MDNSStatusPanel: View {
                     .frame(width: 8, height: 8)
                 Circle()
                     .fill(dataStatusColor)
+                    .frame(width: 8, height: 8)
+                Circle()
+                    .fill(teleopStatusColor)
                     .frame(width: 8, height: 8)
                 Circle()
                     .fill(controlStatusColor)
@@ -274,6 +306,11 @@ struct MDNSStatusPanel: View {
                 label: "Data",
                 status: dataStatusText,
                 color: dataStatusColor
+            )
+            StatusRow(
+                label: "Teleop",
+                status: teleopStatusText,
+                color: teleopStatusColor
             )
             StatusRow(
                 label: "Ctrl",
@@ -374,7 +411,7 @@ struct StatusRow: View {
             Text(label)
                 .font(.system(size: 11, weight: .medium).monospaced())
                 .foregroundColor(.white.opacity(0.7))
-                .frame(width: 30, alignment: .leading)
+                .frame(width: 42, alignment: .leading)
             Text(status)
                 .font(.system(size: 11).monospaced())
                 .foregroundColor(.white)
@@ -524,8 +561,46 @@ struct FeasibleCapControlPanel: View {
         }
     }
 
+    private let taskLabels = ["pick_and_place", "tossing"]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
+            // Collection mode toggle
+            HStack(spacing: 0) {
+                ForEach(CollectionMode.allCases, id: \.self) { mode in
+                    Button {
+                        ARManager.shared.actionStream.send(.setCollectionMode(mode))
+                    } label: {
+                        Text(mode == .feasiblecap ? "FeasibleCap" : "Baseline")
+                            .font(.system(size: 10, weight: .medium).monospaced())
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(viewController.collectionMode == mode ? Color.blue.opacity(0.5) : Color.white.opacity(0.12))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .cornerRadius(6)
+
+            // Task label picker
+            HStack(spacing: 0) {
+                ForEach(taskLabels, id: \.self) { label in
+                    Button {
+                        ARManager.shared.actionStream.send(.setTaskLabel(label))
+                    } label: {
+                        Text(label.replacingOccurrences(of: "_", with: " "))
+                            .font(.system(size: 10, weight: .medium).monospaced())
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(viewController.taskLabel == label ? Color.purple.opacity(0.5) : Color.white.opacity(0.12))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .cornerRadius(6)
+
             // Feasibility indicator
             HStack(spacing: 6) {
                 Circle()
@@ -843,9 +918,22 @@ struct FeasibleCapControlPanel: View {
 
 struct TeleopControlPanel: View {
     @ObservedObject var viewController: ViewController
+    @ObservedObject var bonjourManager: BonjourManager
 
     private var isConnected: Bool {
         viewController.connectionStatus == .connected
+    }
+
+    private var teleopStatusColor: Color {
+        if isConnected { return .green }
+        if !bonjourManager.teleopServers.isEmpty { return .yellow }
+        return .gray
+    }
+
+    private var teleopStatusText: String {
+        if isConnected { return "Teleop Ready" }
+        if !bonjourManager.teleopServers.isEmpty { return "Teleop Found" }
+        return "No Teleop"
     }
 
     var body: some View {
@@ -853,9 +941,9 @@ struct TeleopControlPanel: View {
             // Connection status
             HStack(spacing: 6) {
                 Circle()
-                    .fill(isConnected ? Color.green : Color.gray)
+                    .fill(teleopStatusColor)
                     .frame(width: 8, height: 8)
-                Text(isConnected ? "Teleop Ready" : "Disconnected")
+                Text(teleopStatusText)
                     .font(.system(size: 11, weight: .medium).monospaced())
                     .foregroundColor(.white.opacity(0.85))
             }

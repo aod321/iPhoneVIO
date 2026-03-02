@@ -12,6 +12,7 @@ enum MessageType: UInt8 {
     case sessionMetadata = 0
     case frameData = 1
     case teleopCommand = 2
+    case feasibilityData = 3
 }
 
 struct SessionMetadata: Encodable {
@@ -60,6 +61,32 @@ struct FramePacket {
         data.append(jpegData)
 
         return data
+    }
+}
+
+struct FeasibilityPacket: Encodable {
+    let timestamp: Double          // wall clock for correlation with frame data
+    let state: UInt8               // 0=feasible, 1=warning, 2=infeasible
+    let rawState: UInt8            // pre-debounce state
+    let ikConverged: Bool
+    let positionError: Float       // meters
+    let orientationError: Float    // radians
+    let manipulability: Float
+    let maxJointRateRatio: Float
+    let withinJointLimits: Bool
+    let withinVelocityLimits: Bool
+    let selfCollision: Bool
+    let nearSingularity: Bool
+    let jointAngles: [Float]       // 7 values
+    let collectionMode: String     // "feasiblecap" or "baseline"
+    let taskLabel: String
+
+    static func stateToUInt8(_ s: FeasibilityState) -> UInt8 {
+        switch s {
+        case .feasible: return 0
+        case .warning: return 1
+        case .infeasible: return 2
+        }
     }
 }
 
@@ -183,6 +210,17 @@ class NetworkClient {
             self?.isSending = false
             if let error = error {
                 print("Failed to send frame: \(error)")
+            }
+        })
+    }
+
+    func sendFeasibility(_ packet: FeasibilityPacket) {
+        guard let conn = connection else { return }
+        guard let jsonData = try? JSONEncoder().encode(packet) else { return }
+        let message = Self.wrapMessage(type: .feasibilityData, payload: jsonData)
+        conn.send(content: message, completion: .contentProcessed { error in
+            if let error = error {
+                print("Failed to send feasibility: \(error)")
             }
         })
     }

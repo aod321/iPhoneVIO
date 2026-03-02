@@ -21,7 +21,7 @@ struct CollisionResult {
 class SelfCollisionChecker {
     private let spheres: [CollisionSphere]
     private let checkPairs: [CollisionPair]
-    private let safetyMargin: Float = 0.02  // 20mm
+    private let safetyMargin: Float = 0.01  // 10mm
 
     /// Initialize with RM75 approximate geometry.
     /// Link indices match FK linkTransforms: 0=base_link, 1=Link1, ..., 7=Link7

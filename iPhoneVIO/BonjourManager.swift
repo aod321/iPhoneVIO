@@ -5,6 +5,7 @@
 //  Handles Bonjour/mDNS advertising and service discovery.
 //  - Advertises _iphonevio._tcp so rapid_driver can detect the app is running
 //  - Browses _vioserver._tcp to auto-discover TCP servers on the LAN
+//  - Browses _iphonetelop._tcp to discover direct teleop nodes (priority over _vioserver)
 //  - Browses _rapiddriver._tcp to discover the HTTP control API
 //
 
@@ -23,6 +24,7 @@ class BonjourManager: ObservableObject {
 
     // MARK: - Published State
     @Published var discoveredServers: [DiscoveredServer] = []
+    @Published var teleopServers: [DiscoveredServer] = []
     @Published var isAdvertising = false
     @Published var rapidDriverURL: URL?
 
@@ -33,6 +35,10 @@ class BonjourManager: ObservableObject {
     // MARK: - Browsing (_vioserver._tcp)
     private var browser: NWBrowser?
     private let browseQueue = DispatchQueue(label: "com.iphoneVIO.bonjour.browse")
+
+    // MARK: - Browsing (_iphonetelop._tcp)
+    private var teleopBrowser: NWBrowser?
+    private let teleopQueue = DispatchQueue(label: "com.iphoneVIO.bonjour.teleop")
 
     // MARK: - Browsing (_rapiddriver._tcp)
     private var rapidDriverBrowser: NWBrowser?
@@ -200,6 +206,61 @@ class BonjourManager: ObservableObject {
         }
     }
 
+    // MARK: - Browse _iphonetelop._tcp
+
+    func startTeleopBrowsing() {
+        if teleopBrowser != nil {
+            print("[Bonjour] Already browsing _iphonetelop._tcp, skipping restart")
+            return
+        }
+
+        let descriptor = NWBrowser.Descriptor.bonjour(type: "_iphonetelop._tcp", domain: nil)
+        let params = NWParameters()
+        params.includePeerToPeer = true
+
+        teleopBrowser = NWBrowser(for: descriptor, using: params)
+
+        teleopBrowser?.stateUpdateHandler = { [weak self] state in
+            switch state {
+            case .ready:
+                print("[Bonjour] Browsing for _iphonetelop._tcp")
+            case .failed(let error):
+                print("[Bonjour] Teleop browser failed: \(error), restarting…")
+                self?.teleopBrowser?.cancel()
+                self?.teleopBrowser = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self?.startTeleopBrowsing()
+                }
+            default:
+                break
+            }
+        }
+
+        teleopBrowser?.browseResultsChangedHandler = { [weak self] results, _ in
+            let servers = results.compactMap { result -> DiscoveredServer? in
+                guard case .service(let name, _, _, _) = result.endpoint else { return nil }
+                return DiscoveredServer(
+                    id: "\(result.hashValue)",
+                    name: name,
+                    endpoint: result.endpoint
+                )
+            }
+            DispatchQueue.main.async {
+                self?.teleopServers = servers
+            }
+        }
+
+        teleopBrowser?.start(queue: teleopQueue)
+    }
+
+    func stopTeleopBrowsing() {
+        teleopBrowser?.cancel()
+        teleopBrowser = nil
+        DispatchQueue.main.async {
+            self.teleopServers = []
+        }
+    }
+
     // MARK: - Browse _rapiddriver._tcp
 
     func startRapidDriverBrowsing() {
@@ -327,12 +388,14 @@ class BonjourManager: ObservableObject {
     func startAll(sessionId: String = "", deviceModel: String = "") {
         startAdvertising(sessionId: sessionId, deviceModel: deviceModel)
         startBrowsing()
+        startTeleopBrowsing()
         startRapidDriverBrowsing()
     }
 
     func stopAll() {
         stopAdvertising()
         stopBrowsing()
+        stopTeleopBrowsing()
         stopRapidDriverBrowsing()
     }
 }

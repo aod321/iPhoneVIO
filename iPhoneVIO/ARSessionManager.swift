@@ -56,6 +56,8 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
     @Published var arucoDebugText: String = ""
     @Published var distanceToEE: Float = -1  // <0 means unavailable
     @Published var angleToEE: Float = -1    // degrees, <0 means unavailable
+    @Published var collectionMode: CollectionMode = .feasiblecap
+    @Published var taskLabel: String = "pick_and_place"
 
     private var isArucoPlacementMode = false
     private var arucoDetector: ArucoDetector?
@@ -93,6 +95,23 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
     // Teleop anchors (snapshot on engage)
     private var clutchCameraRef: simd_float4x4?
     private var clutchEERef: simd_float4x4?
+
+    // Camera-to-TCP translation offset (in ARKit camera frame, meters)
+    // Measured from CAD: camera center → TCP (fingertip center)
+    //   World frame: forward 76.0mm, down 105.9mm
+    //   Camera frame (45° tilt): Y=-21.1mm, Z=-128.6mm
+    private let cam2tcpTranslation = SIMD3<Float>(0, -0.021, -0.129)
+
+    // Pose-space velocity clamping
+    private var prevClampedTargetPos: SIMD3<Float>?
+    private var prevClampedTargetRot: simd_float3x3?
+    private var prevTargetTimestamp: Double = 0
+    private let maxLinearSpeed: Float = 1.0    // m/s
+    private let maxAngularSpeed: Float = 2.0   // rad/s
+
+    // Haptic state-change cooldown
+    private var lastHapticStateChangeTime: Double = 0
+    private let hapticCooldown: Double = 0.5   // min 0.5s between transitions
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .landscapeRight }
@@ -258,6 +277,9 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
                                 self.clutchEERef = fk.eePose
                             }
                             self.feasibilityChecker?.reset()
+                            self.prevClampedTargetPos = nil
+                            self.prevClampedTargetRot = nil
+                            self.prevTargetTimestamp = 0
                         } else {
                             self.clutchCameraRef = nil
                             self.clutchEERef = nil
@@ -285,6 +307,9 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
                         self.baseTransformBeforePlacement = nil
                         self.clutchCameraRef = nil
                         self.clutchEERef = nil
+                        self.prevClampedTargetPos = nil
+                        self.prevClampedTargetRot = nil
+                        self.prevTargetTimestamp = 0
                         self.previousJointAngles = Array(repeating: 0, count: 7)
                         self.distanceToEE = -1
                         self.angleToEE = -1
@@ -297,6 +322,19 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
                         self.hapticManager?.stopWarning()
                     case .correctToCamera:
                         self?.correctGhostArmToCamera()
+                    case .setCollectionMode(let mode):
+                        guard let self = self else { return }
+                        self.collectionMode = mode
+                        if mode == .baseline {
+                            self.robotRenderer?.hide()
+                            self.isGhostVisible = false
+                            self.hapticManager?.stopWarning()
+                        } else if self.robotBasePlaced {
+                            self.robotRenderer?.show()
+                            self.isGhostVisible = true
+                        }
+                    case .setTaskLabel(let label):
+                        self?.taskLabel = label
                     case .toggleTeleopClutch:
                         guard let self = self else { return }
                         self.isTeleopClutchEngaged.toggle()
@@ -1033,9 +1071,19 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
         let fk = solver.forwardKinematics(previousJointAngles)
         // EE pose is in base frame → convert to world frame
         let eeWorld = robotBaseTransform * fk.eePose
-        let dx = cam.columns.3.x - eeWorld.columns.3.x
-        let dy = cam.columns.3.y - eeWorld.columns.3.y
-        let dz = cam.columns.3.z - eeWorld.columns.3.z
+        // Compute TCP position from camera position + cam2tcp offset
+        let camRot3 = simd_float3x3(
+            SIMD3(cam.columns.0.x, cam.columns.0.y, cam.columns.0.z),
+            SIMD3(cam.columns.1.x, cam.columns.1.y, cam.columns.1.z),
+            SIMD3(cam.columns.2.x, cam.columns.2.y, cam.columns.2.z)
+        )
+        let tcpOffset = camRot3 * cam2tcpTranslation
+        let tcpX = cam.columns.3.x + tcpOffset.x
+        let tcpY = cam.columns.3.y + tcpOffset.y
+        let tcpZ = cam.columns.3.z + tcpOffset.z
+        let dx = tcpX - eeWorld.columns.3.x
+        let dy = tcpY - eeWorld.columns.3.y
+        let dz = tcpZ - eeWorld.columns.3.z
         distanceToEE = sqrtf(dx * dx + dy * dy + dz * dz)
 
         // Rotation difference: use corrected camera (180° Y + -90° Z + 45° X bracket) to match gripper
@@ -1080,6 +1128,17 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
         let c2 = camCorrected.columns.2
         camCorrected.columns.0 = c0 * cosA + c2 * sinA
         camCorrected.columns.2 = -c0 * sinA + c2 * cosA
+        // Apply cam2tcp translation offset (camera frame → world frame)
+        let camRotMat = simd_float3x3(
+            SIMD3(camCorrected.columns.0.x, camCorrected.columns.0.y, camCorrected.columns.0.z),
+            SIMD3(camCorrected.columns.1.x, camCorrected.columns.1.y, camCorrected.columns.1.z),
+            SIMD3(camCorrected.columns.2.x, camCorrected.columns.2.y, camCorrected.columns.2.z)
+        )
+        let tcpOffset_world = camRotMat * cam2tcpTranslation
+        camCorrected.columns.3.x += tcpOffset_world.x
+        camCorrected.columns.3.y += tcpOffset_world.y
+        camCorrected.columns.3.z += tcpOffset_world.z
+
         // Camera pose in base frame → IK target
         let targetEE_base = robotBaseTransform.inverse * camCorrected
 
@@ -1138,39 +1197,126 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
             SIMD3(eeRef.columns.1.x, eeRef.columns.1.y, eeRef.columns.1.z),
             SIMD3(eeRef.columns.2.x, eeRef.columns.2.y, eeRef.columns.2.z)
         )
-        let targetRot = dR_base * eeRefRot3
+        let rawTargetRot = dR_base * eeRefRot3
         let eeRefPos = SIMD3<Float>(eeRef.columns.3.x, eeRef.columns.3.y, eeRef.columns.3.z)
-        let targetPos = eeRefPos + dp_base
+        let rawTargetPos = eeRefPos + dp_base
+
+        // Pose-space velocity clamping: limit EE speed so IK can always track
+        var clampedPos = rawTargetPos
+        var clampedRot = rawTargetRot
+        let dt = Float(timestamp - prevTargetTimestamp)
+        if let prevPos = prevClampedTargetPos,
+           let prevRot = prevClampedTargetRot,
+           dt > 0.001 && dt < 0.5 {
+            // Clamp linear velocity
+            let dp = rawTargetPos - prevPos
+            let linearSpeed = simd_length(dp)
+            let maxLinearStep = maxLinearSpeed * dt
+            if linearSpeed > maxLinearStep {
+                clampedPos = prevPos + dp * (maxLinearStep / linearSpeed)
+            }
+
+            // Clamp angular velocity via axis-angle of delta rotation
+            let dR = rawTargetRot * prevRot.transpose
+            // axis-angle magnitude from rotation matrix trace
+            let trace = dR.columns.0.x + dR.columns.1.y + dR.columns.2.z
+            let cosTheta = max(-1.0, min(1.0, (trace - 1) * 0.5))
+            let theta = acosf(cosTheta)
+            let maxAngularStep = maxAngularSpeed * dt
+            if theta > maxAngularStep && theta > 1e-6 {
+                // Interpolate: prevRot → rawTargetRot by fraction maxAngularStep/theta
+                let fraction = maxAngularStep / theta
+                // Axis from skew-symmetric part of dR
+                let ax = SIMD3<Float>(
+                    dR[1][2] - dR[2][1],
+                    dR[2][0] - dR[0][2],
+                    dR[0][1] - dR[1][0]
+                ) * 0.5
+                let sinT = simd_length(ax)
+                if sinT > 1e-6 {
+                    let axis = ax / sinT
+                    let clampedTheta = maxAngularStep
+                    let c = cosf(clampedTheta), s = sinf(clampedTheta)
+                    let t = 1 - c
+                    let x = axis.x, y = axis.y, z = axis.z
+                    let clampedDR = simd_float3x3(columns: (
+                        SIMD3<Float>(t*x*x + c,   t*x*y + z*s, t*x*z - y*s),
+                        SIMD3<Float>(t*x*y - z*s, t*y*y + c,   t*y*z + x*s),
+                        SIMD3<Float>(t*x*z + y*s, t*y*z - x*s, t*z*z + c)
+                    ))
+                    clampedRot = clampedDR * prevRot
+                } else {
+                    clampedRot = prevRot  // near-zero rotation, keep previous
+                }
+            }
+        }
+        prevClampedTargetPos = clampedPos
+        prevClampedTargetRot = clampedRot
+        prevTargetTimestamp = timestamp
 
         var targetPose = matrix_identity_float4x4
-        targetPose.columns.0 = SIMD4(targetRot.columns.0, 0)
-        targetPose.columns.1 = SIMD4(targetRot.columns.1, 0)
-        targetPose.columns.2 = SIMD4(targetRot.columns.2, 0)
-        targetPose.columns.3 = SIMD4(targetPos, 1)
+        targetPose.columns.0 = SIMD4(clampedRot.columns.0, 0)
+        targetPose.columns.1 = SIMD4(clampedRot.columns.1, 0)
+        targetPose.columns.2 = SIMD4(clampedRot.columns.2, 0)
+        targetPose.columns.3 = SIMD4(clampedPos, 1)
 
         // IK solve
         let ikResult = solver.solve(target: targetPose, warmStart: previousJointAngles)
-        renderer.updateTransforms(ikResult.fkResult)
 
-        // Feasibility evaluation (3 levels: feasible / warning / infeasible)
+        // Visual update (FeasibleCap mode only)
+        if collectionMode == .feasiblecap {
+            renderer.updateTransforms(ikResult.fkResult)
+        }
+
+        // Feasibility evaluation (always — needed for data recording)
+        let wallClock = Date().timeIntervalSince1970
         let result = checker.evaluate(ikResult: ikResult, timestamp: timestamp)
         let newState = result.state
-        if newState != feasibilityState {
-            feasibilityState = newState
-            renderer.setFeasibilityState(newState)
-            hapticManager?.transientPulse()
-            switch newState {
-            case .feasible:
-                hapticManager?.stopWarning()
-            case .warning:
-                hapticManager?.setWarningMode(.mild)
-            case .infeasible:
-                hapticManager?.setWarningMode(.strong)
-            }
-        }
+        let stateChanged = newState != feasibilityState
+        feasibilityState = newState
         feasibilityReason = feasibilityReasonText(result)
 
+        // Visual + haptic feedback (FeasibleCap mode only)
+        if collectionMode == .feasiblecap && stateChanged {
+            renderer.setFeasibilityState(newState)
+            let now = CACurrentMediaTime()
+            if now - lastHapticStateChangeTime >= hapticCooldown {
+                lastHapticStateChangeTime = now
+                hapticManager?.transientPulse()
+                switch newState {
+                case .feasible:
+                    hapticManager?.stopWarning()
+                case .warning:
+                    hapticManager?.setWarningMode(.mild)
+                case .infeasible:
+                    hapticManager?.setWarningMode(.strong)
+                }
+            }
+        }
+
         previousJointAngles = ikResult.jointAngles
+
+        // Send feasibility packet over TCP (both modes)
+        if publishPose {
+            let packet = FeasibilityPacket(
+                timestamp: wallClock,
+                state: FeasibilityPacket.stateToUInt8(result.state),
+                rawState: FeasibilityPacket.stateToUInt8(result.rawState),
+                ikConverged: result.ikConverged,
+                positionError: result.positionError,
+                orientationError: result.orientationError,
+                manipulability: result.manipulability,
+                maxJointRateRatio: result.maxJointRateRatio,
+                withinJointLimits: result.withinJointLimits,
+                withinVelocityLimits: result.withinVelocityLimits,
+                selfCollision: result.selfCollision,
+                nearSingularity: result.nearSingularity,
+                jointAngles: ikResult.jointAngles,
+                collectionMode: collectionMode.rawValue,
+                taskLabel: taskLabel
+            )
+            networkClient.sendFeasibility(packet)
+        }
     }
 
     private func feasibilityReasonText(_ result: FeasibilityResult) -> String {

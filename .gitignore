@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+*.xcuserstate
+
+# Data files
+*.mcap
+data/
+
+# Analysis output
+analysis_output/
+
+# Python
+.venv/
+__pycache__/
+*.pyc

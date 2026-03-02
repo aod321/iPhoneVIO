@@ -18,9 +18,9 @@ struct IKResult {
 class IKSolver {
     let model: RobotKinematics
     private let dof: Int
-    private let maxIterations = 20
-    private let positionTolerance: Float = 0.001   // 1mm
-    private let orientationTolerance: Float = 0.01  // rad
+    private let maxIterations = 30
+    private let positionTolerance: Float = 0.005   // 5mm (ghost arm visualization)
+    private let orientationTolerance: Float = 0.05  // ~2.9° (ghost arm visualization)
     private let lambdaSq: Float = 0.01             // DLS damping λ²
     private let maxJointStepPerIteration: Float = 0.15  // rad, improves numerical stability
 
@@ -280,7 +280,7 @@ class IKSolver {
         let cosTheta = (R[0][0] + R[1][1] + R[2][2] - 1) * 0.5
         let clampedCosTheta = max(-1.0, min(1.0, cosTheta))
 
-        if sinTheta < 1e-6 {
+        if sinTheta < 1e-3 {
             if clampedCosTheta > 0 {
                 return .zero  // No rotation
             } else {

@@ -9,12 +9,16 @@ enum FeasibilityState: Equatable {
 
 struct FeasibilityResult {
     let state: FeasibilityState
+    let rawState: FeasibilityState       // pre-debounce state (for offline analysis)
     let ikConverged: Bool
+    let positionError: Float             // meters (from IK)
+    let orientationError: Float          // radians (from IK)
     let withinJointLimits: Bool
     let withinVelocityLimits: Bool
     let nearSingularity: Bool
     let manipulability: Float
     let selfCollision: Bool
+    let maxJointRateRatio: Float         // max_i |q̇_i| / (q̇_max_i × safetyFactor)
 }
 
 class FeasibilityChecker {
@@ -23,8 +27,8 @@ class FeasibilityChecker {
     private var previousTimestamp: Double = 0
     private let pauseThreshold: Double = 0.5
 
-    /// Safety factor: use 80% of hardware max velocity as feasibility threshold
-    private let velocitySafetyFactor: Float = 0.8
+    /// Safety factor: use 50% of hardware max velocity as feasibility threshold
+    private let velocitySafetyFactor: Float = 0.5
 
     // -- Singularity thresholds --
     /// Manipulability below this → infeasible (at singularity)
@@ -38,8 +42,8 @@ class FeasibilityChecker {
     private let collisionChecker = SelfCollisionChecker()
 
     // -- Debounce --
-    private let infeasibleDebounceCount = 3
-    private let feasibleDebounceCount = 2
+    private let infeasibleDebounceCount = 5
+    private let feasibleDebounceCount = 5
     private var consecutiveInfeasibleFrames = 0
     private var consecutiveFeasibleFrames = 0
     private var consecutiveWarningFrames = 0
@@ -48,7 +52,7 @@ class FeasibilityChecker {
     // -- Velocity sliding window --
     private let velocityWindowSize = 5
     private var velocityViolationHistory: [Bool] = []
-    private let velocityViolationThreshold = 3
+    private let velocityViolationThreshold = 4
 
     init(joints: [JointDef]) {
         self.joints = joints
@@ -69,15 +73,20 @@ class FeasibilityChecker {
 
         // 2. Joint velocity limits (only when IK converged both frames)
         var velocityOk = true
+        var maxJointRateRatio: Float = 0
         if ikOk, let prevQ = previousAngles, previousTimestamp > 0 {
             let dt = timestamp - previousTimestamp
             if dt > 0.001 && dt < pauseThreshold {
                 var frameViolation = false
                 for (i, angle) in q.enumerated() where i < joints.count {
                     let rate = abs(angle - prevQ[i]) / Float(dt)
-                    if rate > joints[i].velLimit * velocitySafetyFactor {
+                    let limit = joints[i].velLimit * velocitySafetyFactor
+                    if limit > 0 {
+                        let ratio = rate / limit
+                        maxJointRateRatio = max(maxJointRateRatio, ratio)
+                    }
+                    if rate > limit {
                         frameViolation = true
-                        break
                     }
                 }
                 velocityViolationHistory.append(frameViolation)
@@ -102,11 +111,10 @@ class FeasibilityChecker {
         // 4. Self-collision
         let collisionResult = collisionChecker.check(linkTransforms: ikResult.fkResult.linkTransforms)
 
-        // Only update velocity history when IK converged
-        if ikOk {
-            previousAngles = q
-            previousTimestamp = timestamp
-        }
+        // Always update previous angles to avoid false velocity spikes
+        // when IK recovers after several non-converged frames
+        previousAngles = q
+        previousTimestamp = timestamp
 
         // Determine raw state
         let rawState: FeasibilityState
@@ -147,12 +155,16 @@ class FeasibilityChecker {
 
         return FeasibilityResult(
             state: currentState,
+            rawState: rawState,
             ikConverged: ikOk,
+            positionError: ikResult.positionError,
+            orientationError: ikResult.orientationError,
             withinJointLimits: limitsOk,
             withinVelocityLimits: velocityOk,
             nearSingularity: nearSingularity || knownSingular,
             manipulability: w,
-            selfCollision: collisionResult.colliding
+            selfCollision: collisionResult.colliding,
+            maxJointRateRatio: maxJointRateRatio
         )
     }
 
