@@ -46,7 +46,7 @@ class DataManagementController: ObservableObject {
 
     func fetchRecordings() async {
         guard let baseURL = baseURL else {
-            await setError("控制服务未连接")
+            await setError("Control service not connected")
             return
         }
         await MainActor.run { isLoading = true }
@@ -61,7 +61,7 @@ class DataManagementController: ObservableObject {
             let (data, response) = try await sendRequest(URLRequest(url: url))
             guard (200..<300).contains(response.statusCode) else {
                 let apiErr = parseAPIError(from: data)
-                await setError(apiErr ?? "获取列表失败 (\(response.statusCode)) \(url.absoluteString)")
+                await setError(apiErr ?? "Failed to fetch list (\(response.statusCode)) \(url.absoluteString)")
                 return
             }
             let result = try jsonDecoder.decode(RecordingsResponse.self, from: data)
@@ -74,7 +74,7 @@ class DataManagementController: ObservableObject {
                 self.selectedIds = self.selectedIds.intersection(existingIds)
             }
         } catch {
-            await setError("连接失败: \(error.localizedDescription)")
+            await setError("Connection failed: \(error.localizedDescription)")
         }
     }
 
@@ -82,7 +82,7 @@ class DataManagementController: ObservableObject {
 
     func deleteRecording(_ id: String) async -> Bool {
         guard let baseURL = baseURL else {
-            await setError("控制服务未连接")
+            await setError("Control service not connected")
             return false
         }
 
@@ -101,11 +101,11 @@ class DataManagementController: ObservableObject {
                 }
                 return true
             } else {
-                await setError(parseAPIError(from: data) ?? "删除失败")
+                await setError(parseAPIError(from: data) ?? "Delete failed")
                 return false
             }
         } catch {
-            await setError("连接失败")
+            await setError("Connection failed")
             return false
         }
     }
@@ -114,7 +114,7 @@ class DataManagementController: ObservableObject {
 
     func deleteBatch(_ ids: Set<String>) async {
         guard let baseURL = baseURL else {
-            await setError("控制服务未连接")
+            await setError("Control service not connected")
             return
         }
         guard !ids.isEmpty else { return }
@@ -139,13 +139,13 @@ class DataManagementController: ObservableObject {
                 }
                 if !result.failed.isEmpty {
                     let failMsg = result.failed.map { "\($0.sessionId.prefix(8)): \($0.error)" }.joined(separator: "\n")
-                    await setError("部分删除失败:\n\(failMsg)")
+                    await setError("Some deletions failed:\n\(failMsg)")
                 }
             } else {
-                await setError(parseAPIError(from: data) ?? "批量删除失败")
+                await setError(parseAPIError(from: data) ?? "Batch delete failed")
             }
         } catch {
-            await setError("连接失败")
+            await setError("Connection failed")
         }
     }
 
@@ -153,7 +153,7 @@ class DataManagementController: ObservableObject {
 
     func startReplay(_ id: String) async -> Bool {
         guard let baseURL = baseURL else {
-            await setError("控制服务未连接")
+            await setError("Control service not connected")
             return false
         }
 
@@ -174,11 +174,11 @@ class DataManagementController: ObservableObject {
                 }
                 return true
             } else {
-                await setError(parseAPIError(from: data) ?? "重播启动失败")
+                await setError(parseAPIError(from: data) ?? "Replay start failed")
                 return false
             }
         } catch {
-            await setError("连接失败")
+            await setError("Connection failed")
             return false
         }
     }
@@ -200,10 +200,10 @@ class DataManagementController: ObservableObject {
                     self.stopReplayPolling()
                 }
             } else {
-                await setError(parseAPIError(from: data) ?? "停止重播失败")
+                await setError(parseAPIError(from: data) ?? "Stop replay failed")
             }
         } catch {
-            await setError("连接失败")
+            await setError("Connection failed")
         }
     }
 

@@ -37,7 +37,7 @@ struct DataManagementView: View {
                 replayControlBar(status)
             }
         }
-        .navigationTitle("数据管理")
+        .navigationTitle("Data Management")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -47,12 +47,12 @@ struct DataManagementView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
-                        Text("返回")
+                        Text("Back")
                     }
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isEditing ? "完成" : "编辑") {
+                Button(isEditing ? "Done" : "Edit") {
                     withAnimation {
                         isEditing.toggle()
                         if !isEditing {
@@ -77,19 +77,19 @@ struct DataManagementView: View {
             }
         }
         // Single delete confirmation
-        .alert("确认删除", isPresented: $showDeleteConfirm) {
-            Button("删除", role: .destructive) {
+        .alert("Confirm Delete", isPresented: $showDeleteConfirm) {
+            Button("Delete", role: .destructive) {
                 if let id = deleteTarget {
                     Task { await controller.deleteRecording(id) }
                 }
             }
-            Button("取消", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("删除后无法恢复")
+            Text("This action cannot be undone")
         }
         // Batch delete confirmation
-        .alert("确认批量删除", isPresented: $showBatchDeleteConfirm) {
-            Button("删除 \(controller.selectedIds.count) 项", role: .destructive) {
+        .alert("Confirm Batch Delete", isPresented: $showBatchDeleteConfirm) {
+            Button("Delete \(controller.selectedIds.count) Items", role: .destructive) {
                 let ids = controller.selectedIds
                 Task {
                     await controller.deleteBatch(ids)
@@ -100,9 +100,9 @@ struct DataManagementView: View {
                     }
                 }
             }
-            Button("取消", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("将删除选中的 \(controller.selectedIds.count) 个录制文件，无法恢复")
+            Text("\(controller.selectedIds.count) selected recordings will be permanently deleted")
         }
         // Error toast
         .overlay(alignment: .top) {
@@ -130,7 +130,7 @@ struct DataManagementView: View {
                 .font(.system(size: 13))
                 .foregroundColor(.secondary)
             Spacer()
-            Label("可用 \(formatBytes(controller.diskFreeBytes))", systemImage: "externaldrive")
+            Label("Free \(formatBytes(controller.diskFreeBytes))", systemImage: "externaldrive")
                 .font(.system(size: 13))
                 .foregroundColor(.secondary)
         }
@@ -150,7 +150,7 @@ struct DataManagementView: View {
                     controller.selectedIds = Set(controller.recordings.map(\.sessionId))
                 }
             } label: {
-                Text(controller.selectedIds.count == controller.recordings.count ? "取消全选" : "全选")
+                Text(controller.selectedIds.count == controller.recordings.count ? "Deselect All" : "Select All")
                     .font(.system(size: 14))
             }
 
@@ -159,7 +159,7 @@ struct DataManagementView: View {
             Button(role: .destructive) {
                 showBatchDeleteConfirm = true
             } label: {
-                Text("删除选中 (\(controller.selectedIds.count))")
+                Text("Delete Selected (\(controller.selectedIds.count))")
                     .font(.system(size: 14, weight: .medium))
             }
         }
@@ -174,7 +174,7 @@ struct DataManagementView: View {
     private var listContent: some View {
         if controller.isLoading && controller.recordings.isEmpty {
             Spacer()
-            ProgressView("加载中…")
+            ProgressView("Loading…")
             Spacer()
         } else if controller.recordings.isEmpty {
             Spacer()
@@ -182,10 +182,10 @@ struct DataManagementView: View {
                 Image(systemName: "folder")
                     .font(.system(size: 40))
                     .foregroundColor(.secondary)
-                Text("暂无录制文件")
+                Text("No Recordings")
                     .font(.system(size: 16))
                     .foregroundColor(.secondary)
-                Button("刷新") {
+                Button("Refresh") {
                     Task { await controller.fetchRecordings() }
                 }
                 .buttonStyle(.bordered)
@@ -200,7 +200,7 @@ struct DataManagementView: View {
                                 deleteTarget = item.sessionId
                                 showDeleteConfirm = true
                             } label: {
-                                Label("删除", systemImage: "trash")
+                                Label("Delete", systemImage: "trash")
                             }
                         }
                         .contentShape(Rectangle())
@@ -227,18 +227,18 @@ struct DataManagementView: View {
                 titleVisibility: .visible
             ) {
                 if let item = actionTarget {
-                    Button("重播") {
+                    Button("Replay") {
                         startReplayIfAllowed(item.sessionId)
                     }
                     .disabled(isRecording)
 
-                    Button("删除", role: .destructive) {
+                    Button("Delete", role: .destructive) {
                         deleteTarget = item.sessionId
                         actionTarget = nil
                         showDeleteConfirm = true
                     }
 
-                    Button("取消", role: .cancel) {
+                    Button("Cancel", role: .cancel) {
                         actionTarget = nil
                     }
                 }
@@ -273,7 +273,7 @@ struct DataManagementView: View {
                 }
 
                 if let dur = item.durationSecs {
-                    Text("时长 \(formatDuration(dur))")
+                    Text("Duration \(formatDuration(dur))")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
@@ -300,7 +300,7 @@ struct DataManagementView: View {
 
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("重播中")
+                    Text("Replaying")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.green)
                     Text("\(formatDuration(status.elapsedSecs)) / \(formatDuration(status.totalSecs))")
@@ -340,11 +340,11 @@ struct DataManagementView: View {
 
     private func startReplayIfAllowed(_ id: String) {
         if isRecording {
-            controller.error = "录制中无法重播"
+            controller.error = "Cannot replay while recording"
             return
         }
         if controller.isReplaying {
-            controller.error = "已有重播进行中，请先停止"
+            controller.error = "Replay already in progress, stop it first"
             return
         }
         Task { await controller.startReplay(id) }

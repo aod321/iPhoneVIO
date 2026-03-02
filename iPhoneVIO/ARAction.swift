@@ -17,4 +17,6 @@ enum ARAction {
     case setHomePose
     case resetGhostArm
     case correctToCamera
+    // Real robot teleop
+    case toggleTeleopClutch
 }

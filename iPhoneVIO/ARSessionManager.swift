@@ -44,6 +44,7 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
     private var previousJointAngles: [Float] = Array(repeating: 0, count: 7)
 
     @Published var isClutchEngaged = false
+    @Published var isTeleopClutchEngaged = false
     @Published var isGhostVisible = false
     @Published var feasibilityState: FeasibilityState = .feasible
     @Published var feasibilityReason: String = ""
@@ -78,18 +79,18 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
     private var pendingBaseHeightOffset: Float = 0
     private var baseTransformBeforePlacement: simd_float4x4?
 
-    /// RM75 Home 姿态（度）: -100, -38, -156, 50, -15, 85, 90
+    /// RM75 Home pose (degrees): -100, -38, -156, 50, -15, 85, 90
     private let homeJointAnglesDeg: [Float] = [-100, -38, -156, 50, -15, 85, 0]
     private var homeJointAngles: [Float] {
         homeJointAnglesDeg.map { $0 * .pi / 180 }
     }
 
-    /// 放置确认后的初始姿态 — 直接使用 Home 姿态
+    /// Initial pose after placement confirmed — uses Home pose directly
     private var placementInitJointAngles: [Float] {
         homeJointAngles
     }
 
-    // 遥操作锚点（engage 时快照）
+    // Teleop anchors (snapshot on engage)
     private var clutchCameraRef: simd_float4x4?
     private var clutchEERef: simd_float4x4?
 
@@ -250,7 +251,7 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
                         guard let self = self else { return }
                         self.isClutchEngaged.toggle()
                         if self.isClutchEngaged {
-                            // 记录锚点
+                            // Record anchors
                             self.clutchCameraRef = self.cameraTransform
                             if let solver = self.ikSolver {
                                 let fk = solver.forwardKinematics(self.previousJointAngles)
@@ -296,6 +297,11 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
                         self.hapticManager?.stopWarning()
                     case .correctToCamera:
                         self?.correctGhostArmToCamera()
+                    case .toggleTeleopClutch:
+                        guard let self = self else { return }
+                        self.isTeleopClutchEngaged.toggle()
+                        let cmd = self.isTeleopClutchEngaged ? "clutch_engage" : "clutch_disengage"
+                        self.networkClient.sendTeleopCommand(cmd)
                 }
             }
             .store(in: &cancellables)
@@ -810,11 +816,11 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
         baseTransformBeforePlacement = nil
         arucoMissCount = 0
 
-        // 使用放置后的默认姿态，而不是沿用上一次遥操作/零位姿态
+        // Use default post-placement pose instead of carrying over previous teleop/zero pose
         previousJointAngles = placementInitJointAngles
 
         robotRenderer?.setBaseTransform(transform)
-        // 以当前关节角（放置后初始姿态）显示，不做 IK
+        // Display at current joint angles (post-placement initial pose), no IK
         if let solver = ikSolver, let renderer = robotRenderer {
             let fk = solver.forwardKinematics(previousJointAngles)
             renderer.updateTransforms(fk)
@@ -905,7 +911,7 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
             return false
         }
 
-        // 预览阶段固定使用“放置后初始姿态”，确保确认前后姿态一致
+        // Preview stage always uses post-placement initial pose, ensuring consistent pose before/after confirm
         let previewFK = solver.forwardKinematics(placementInitJointAngles)
         renderer.updateTransforms(previewFK)
         renderer.setFeasibilityState(.feasible)
@@ -1096,14 +1102,14 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
               let cameraRef = clutchCameraRef,
               let eeRef = clutchEERef else { return }
 
-        // 手机位移增量（世界坐标系）
+        // Camera displacement delta (world frame)
         let dp_world = SIMD3<Float>(
             cameraTransform.columns.3.x - cameraRef.columns.3.x,
             cameraTransform.columns.3.y - cameraRef.columns.3.y,
             cameraTransform.columns.3.z - cameraRef.columns.3.z
         )
 
-        // 基座逆变换的旋转部分（3x3）
+        // Rotation part of base inverse transform (3x3)
         let baseInv = robotBaseTransform.inverse
         let baseRot3 = simd_float3x3(
             SIMD3(baseInv.columns.0.x, baseInv.columns.0.y, baseInv.columns.0.z),
@@ -1112,7 +1118,7 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
         )
         let dp_base = baseRot3 * dp_world
 
-        // 旋转增量：dR_world = curRot * refRot^T, 转到基座坐标系
+        // Rotation delta: dR_world = curRot * refRot^T, transform to base frame
         let refRot3 = simd_float3x3(
             SIMD3(cameraRef.columns.0.x, cameraRef.columns.0.y, cameraRef.columns.0.z),
             SIMD3(cameraRef.columns.1.x, cameraRef.columns.1.y, cameraRef.columns.1.z),
@@ -1126,7 +1132,7 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
         let dR_world = curRot3 * refRot3.transpose
         let dR_base = baseRot3 * dR_world * baseRot3.transpose
 
-        // 构建目标位姿 = eeRef 叠加增量
+        // Build target pose = eeRef + deltas
         let eeRefRot3 = simd_float3x3(
             SIMD3(eeRef.columns.0.x, eeRef.columns.0.y, eeRef.columns.0.z),
             SIMD3(eeRef.columns.1.x, eeRef.columns.1.y, eeRef.columns.1.z),
@@ -1142,11 +1148,11 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
         targetPose.columns.2 = SIMD4(targetRot.columns.2, 0)
         targetPose.columns.3 = SIMD4(targetPos, 1)
 
-        // IK 求解
+        // IK solve
         let ikResult = solver.solve(target: targetPose, warmStart: previousJointAngles)
         renderer.updateTransforms(ikResult.fkResult)
 
-        // 可行性评估 (三级: feasible / warning / infeasible)
+        // Feasibility evaluation (3 levels: feasible / warning / infeasible)
         let result = checker.evaluate(ikResult: ikResult, timestamp: timestamp)
         let newState = result.state
         if newState != feasibilityState {
@@ -1169,14 +1175,14 @@ class ViewController: UIViewController, ARSessionDelegate, ObservableObject {
 
     private func feasibilityReasonText(_ result: FeasibilityResult) -> String {
         var reasons: [String] = []
-        if !result.ikConverged { reasons.append("IK未收敛") }
-        if !result.withinJointLimits { reasons.append("超出关节限位") }
-        if !result.withinVelocityLimits { reasons.append("超出速度限制") }
-        if result.selfCollision { reasons.append("自碰撞") }
+        if !result.ikConverged { reasons.append("IK not converged") }
+        if !result.withinJointLimits { reasons.append("Joint limit exceeded") }
+        if !result.withinVelocityLimits { reasons.append("Velocity limit exceeded") }
+        if result.selfCollision { reasons.append("Self-collision") }
         if result.manipulability < 1e-5 {
-            reasons.append("处于奇异点")
+            reasons.append("At singularity")
         } else if result.nearSingularity {
-            reasons.append("接近奇异点")
+            reasons.append("Near singularity")
         }
         return reasons.joined(separator: " | ")
     }

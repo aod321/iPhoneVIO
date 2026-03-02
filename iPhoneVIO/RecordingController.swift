@@ -135,11 +135,11 @@ class RecordingController: ObservableObject {
 
     func restartDevice(_ name: String) async {
         guard let baseURL = baseURL else {
-            await setError("控制服务未连接")
+            await setError("Control service not connected")
             return
         }
         if isRecording {
-            await setError("录制中禁止重启设备")
+            await setError("Cannot restart device while recording")
             return
         }
 
@@ -158,7 +158,7 @@ class RecordingController: ObservableObject {
         }
 
         guard let url = makePathURL(baseURL: baseURL, components: ["devices", name, "restart"]) else {
-            await setError("设备名无效")
+            await setError("Invalid device name")
             return
         }
 
@@ -173,7 +173,7 @@ class RecordingController: ObservableObject {
                 try? await Task.sleep(nanoseconds: 500_000_000)
                 pollDevices()
             } else {
-                await setError(parseAPIError(from: data) ?? "重启失败")
+                await setError(parseAPIError(from: data) ?? "Restart failed")
             }
         } catch {
             await setError("Connection failed")

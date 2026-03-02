@@ -103,6 +103,12 @@ struct ContentView : View {
                     .padding(.leading, 8)
                     .padding(.bottom, 40)
             }
+            // Teleop control panel (bottom-trailing)
+            .overlay(alignment: .bottomTrailing) {
+                TeleopControlPanel(viewController: viewController)
+                    .padding(.trailing, 8)
+                    .padding(.bottom, 40)
+            }
             // Recording button (bottom-center)
             .overlay(alignment: .bottom) {
                 RecordingButton(
@@ -182,11 +188,11 @@ struct MDNSStatusPanel: View {
 
     var dataStatusText: String {
         if connectionStatus == .connected {
-            return "已连接"
+            return "Connected"
         } else if !bonjourManager.discoveredServers.isEmpty {
-            return "已发现"
+            return "Found"
         } else {
-            return "搜索中"
+            return "Searching"
         }
     }
 
@@ -197,7 +203,7 @@ struct MDNSStatusPanel: View {
     }
 
     var controlStatusText: String {
-        bonjourManager.rapidDriverURL != nil ? "已发现" : "搜索中"
+        bonjourManager.rapidDriverURL != nil ? "Found" : "Searching"
     }
 
     var controlStatusColor: Color {
@@ -242,7 +248,7 @@ struct MDNSStatusPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             // Header with collapse button
             HStack {
-                Text("状态")
+                Text("Status")
                     .font(.system(size: 11, weight: .bold).monospaced())
                     .foregroundColor(.white.opacity(0.85))
                 Spacer(minLength: 4)
@@ -260,22 +266,22 @@ struct MDNSStatusPanel: View {
             }
 
             StatusRow(
-                label: "广播",
+                label: "Advert",
                 status: bonjourManager.isAdvertising ? "✓" : "…",
                 color: bonjourManager.isAdvertising ? .green : .gray
             )
             StatusRow(
-                label: "数据",
+                label: "Data",
                 status: dataStatusText,
                 color: dataStatusColor
             )
             StatusRow(
-                label: "控制",
+                label: "Ctrl",
                 status: controlStatusText,
                 color: controlStatusColor
             )
             StatusRow(
-                label: "就绪",
+                label: "Ready",
                 status: readyStatusText,
                 color: readyStatusColor
             )
@@ -289,11 +295,11 @@ struct MDNSStatusPanel: View {
                 }
             } label: {
                 HStack(spacing: 6) {
-                    Text("设备")
+                    Text("Devices")
                         .font(.system(size: 11, weight: .medium).monospaced())
                         .foregroundColor(.white.opacity(0.7))
                     Spacer(minLength: 4)
-                    Text(showDeviceControls ? "收起" : "展开")
+                    Text(showDeviceControls ? "Hide" : "Show")
                         .font(.system(size: 11).monospaced())
                         .foregroundColor(.white.opacity(0.85))
                 }
@@ -320,21 +326,21 @@ struct MDNSStatusPanel: View {
     @ViewBuilder
     private var deviceControlsView: some View {
         if !controlAvailable {
-            Text("控制服务未连接")
+            Text("Control not connected")
                 .font(.system(size: 11).monospaced())
                 .foregroundColor(.white.opacity(0.75))
         } else if recordingController.devicesFetchFailed && recordingController.deviceNodes.isEmpty {
-            Text("设备状态获取失败")
+            Text("Device status fetch failed")
                 .font(.system(size: 11).monospaced())
                 .foregroundColor(.yellow)
         } else if recordingController.deviceNodes.isEmpty {
-            Text("未发现设备节点")
+            Text("No device nodes found")
                 .font(.system(size: 11).monospaced())
                 .foregroundColor(.white.opacity(0.75))
         } else {
             VStack(alignment: .leading, spacing: 4) {
                 if recordingController.devicesFetchFailed {
-                    Text("设备状态更新失败")
+                    Text("Device status update failed")
                         .font(.system(size: 10).monospaced())
                         .foregroundColor(.yellow)
                 }
@@ -390,9 +396,9 @@ struct DeviceControlRow: View {
     }
 
     var restartTitle: String {
-        if isRestarting { return "重启中" }
-        if isRecording { return "录制中" }
-        return "重启"
+        if isRestarting { return "Restarting" }
+        if isRecording { return "Recording" }
+        return "Restart"
     }
 
     var buttonDisabled: Bool {
@@ -512,9 +518,9 @@ struct FeasibleCapControlPanel: View {
 
     private var feasibilityLabel: String {
         switch viewController.feasibilityState {
-        case .feasible:   return "可行"
-        case .warning:    return "接近奇异"
-        case .infeasible: return "不可行"
+        case .feasible:   return "Feasible"
+        case .warning:    return "Near Singular"
+        case .infeasible: return "Infeasible"
         }
     }
 
@@ -540,7 +546,7 @@ struct FeasibleCapControlPanel: View {
                 Circle()
                     .fill(viewController.isPlacingBaseMode ? Color.yellow : (viewController.robotBasePlaced ? Color.green : Color.gray))
                     .frame(width: 10, height: 10)
-                Text(viewController.isPlacingBaseMode ? "基座预览中" : (viewController.robotBasePlaced ? "基座已放置" : "基座未放置"))
+                Text(viewController.isPlacingBaseMode ? "Previewing Base" : (viewController.robotBasePlaced ? "Base Placed" : "Base Not Placed"))
                     .font(.system(size: 11, weight: .medium).monospaced())
                     .foregroundColor(.white)
             }
@@ -553,7 +559,7 @@ struct FeasibleCapControlPanel: View {
                     HStack(spacing: 4) {
                         Image(systemName: "qrcode.viewfinder")
                             .font(.system(size: 11))
-                        Text("标签定位")
+                        Text("Tag Locate")
                             .font(.system(size: 11, weight: .medium).monospaced())
                     }
                     .foregroundColor(.white)
@@ -570,7 +576,7 @@ struct FeasibleCapControlPanel: View {
                     HStack(spacing: 4) {
                         Image(systemName: "location.circle")
                             .font(.system(size: 11))
-                        Text("手动放置")
+                        Text("Manual Place")
                             .font(.system(size: 11, weight: .medium).monospaced())
                     }
                     .foregroundColor(.white)
@@ -588,7 +594,7 @@ struct FeasibleCapControlPanel: View {
                     Circle()
                         .fill(viewController.isArucoMarkerDetected ? Color.green : Color.yellow)
                         .frame(width: 8, height: 8)
-                    Text(viewController.isArucoMarkerDetected ? "标签已检测·实时跟踪" : "搜索标签中...")
+                    Text(viewController.isArucoMarkerDetected ? "Tag Detected · Tracking" : "Searching Tag...")
                         .font(.system(size: 11, weight: .medium).monospaced())
                         .foregroundColor(.white.opacity(0.9))
                 }
@@ -608,7 +614,7 @@ struct FeasibleCapControlPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: "rotate.left")
                                 .font(.system(size: 11))
-                            Text("左转15°")
+                            Text("Left 15°")
                                 .font(.system(size: 11, weight: .medium).monospaced())
                         }
                         .foregroundColor(.white)
@@ -627,7 +633,7 @@ struct FeasibleCapControlPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: "rotate.right")
                                 .font(.system(size: 11))
-                            Text("右转15°")
+                            Text("Right 15°")
                                 .font(.system(size: 11, weight: .medium).monospaced())
                         }
                         .foregroundColor(.white)
@@ -648,7 +654,7 @@ struct FeasibleCapControlPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.up")
                                 .font(.system(size: 11))
-                            Text("上移1cm")
+                            Text("Up 1cm")
                                 .font(.system(size: 11, weight: .medium).monospaced())
                         }
                         .foregroundColor(.white)
@@ -667,7 +673,7 @@ struct FeasibleCapControlPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.down")
                                 .font(.system(size: 11))
-                            Text("下移1cm")
+                            Text("Down 1cm")
                                 .font(.system(size: 11, weight: .medium).monospaced())
                         }
                         .foregroundColor(.white)
@@ -681,7 +687,7 @@ struct FeasibleCapControlPanel: View {
                     .opacity(viewController.hasPlacementPreview ? 1.0 : 0.4)
                 }
 
-                Text(String(format: "高度偏移: %.1f cm", viewController.placementHeightOffsetMeters * 100))
+                Text(String(format: "Height Offset: %.1f cm", viewController.placementHeightOffsetMeters * 100))
                     .font(.system(size: 11, weight: .medium).monospaced())
                     .foregroundColor(.white.opacity(0.9))
 
@@ -692,7 +698,7 @@ struct FeasibleCapControlPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle")
                                 .font(.system(size: 11))
-                            Text("确认放置")
+                            Text("Confirm")
                                 .font(.system(size: 11, weight: .medium).monospaced())
                         }
                         .foregroundColor(.white)
@@ -711,7 +717,7 @@ struct FeasibleCapControlPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: "xmark.circle")
                                 .font(.system(size: 11))
-                            Text("取消")
+                            Text("Cancel")
                                 .font(.system(size: 11, weight: .medium).monospaced())
                         }
                         .foregroundColor(.white)
@@ -724,7 +730,7 @@ struct FeasibleCapControlPanel: View {
                 }
             }
 
-            // 姿态设置按钮（放置确认后可用）
+            // Pose preset buttons (available after base placement confirmed)
             if viewController.robotBasePlaced && !viewController.isPlacingBaseMode {
                 HStack(spacing: 6) {
                     Button {
@@ -733,7 +739,7 @@ struct FeasibleCapControlPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.counterclockwise.circle")
                                 .font(.system(size: 11))
-                            Text("零位")
+                            Text("Zero")
                                 .font(.system(size: 11, weight: .medium).monospaced())
                         }
                         .foregroundColor(.white)
@@ -768,10 +774,10 @@ struct FeasibleCapControlPanel: View {
                             Image(systemName: "scope")
                                 .font(.system(size: 11))
                             if viewController.distanceToEE >= 0 && viewController.angleToEE >= 0 {
-                                Text(String(format: "矫正 %.2fm %.0f°", viewController.distanceToEE, viewController.angleToEE))
+                                Text(String(format: "Correct %.2fm %.0f°", viewController.distanceToEE, viewController.angleToEE))
                                     .font(.system(size: 11, weight: .medium).monospaced())
                             } else {
-                                Text("矫正")
+                                Text("Correct")
                                     .font(.system(size: 11, weight: .medium).monospaced())
                             }
                         }
@@ -794,7 +800,7 @@ struct FeasibleCapControlPanel: View {
                 HStack(spacing: 4) {
                     Image(systemName: viewController.isClutchEngaged ? "lock.fill" : "lock.open")
                         .font(.system(size: 11))
-                    Text(viewController.isClutchEngaged ? "松开" : "锁定")
+                    Text(viewController.isClutchEngaged ? "Release" : "Lock")
                         .font(.system(size: 11, weight: .medium).monospaced())
                 }
                 .foregroundColor(.white)
@@ -814,7 +820,7 @@ struct FeasibleCapControlPanel: View {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 11))
-                    Text("重置")
+                    Text("Reset")
                         .font(.system(size: 11, weight: .medium).monospaced())
                 }
                 .foregroundColor(.white)
@@ -826,6 +832,53 @@ struct FeasibleCapControlPanel: View {
             .buttonStyle(.plain)
             .disabled(!viewController.isGhostVisible && !viewController.isPlacingBaseMode)
             .opacity((viewController.isGhostVisible || viewController.isPlacingBaseMode) ? 1.0 : 0.4)
+        }
+        .padding(10)
+        .background(Color.black.opacity(0.6))
+        .cornerRadius(8)
+    }
+}
+
+// MARK: - Teleop Control Panel
+
+struct TeleopControlPanel: View {
+    @ObservedObject var viewController: ViewController
+
+    private var isConnected: Bool {
+        viewController.connectionStatus == .connected
+    }
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            // Connection status
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(isConnected ? Color.green : Color.gray)
+                    .frame(width: 8, height: 8)
+                Text(isConnected ? "Teleop Ready" : "Disconnected")
+                    .font(.system(size: 11, weight: .medium).monospaced())
+                    .foregroundColor(.white.opacity(0.85))
+            }
+
+            // Clutch toggle button
+            Button {
+                ARManager.shared.actionStream.send(.toggleTeleopClutch)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: viewController.isTeleopClutchEngaged ? "hand.raised.fill" : "hand.raised")
+                        .font(.system(size: 14))
+                    Text(viewController.isTeleopClutchEngaged ? "Clutch ON" : "Clutch OFF")
+                        .font(.system(size: 12, weight: .semibold).monospaced())
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(viewController.isTeleopClutchEngaged ? Color.green.opacity(0.5) : Color.white.opacity(0.16))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            .disabled(!isConnected)
+            .opacity(isConnected ? 1.0 : 0.4)
         }
         .padding(10)
         .background(Color.black.opacity(0.6))

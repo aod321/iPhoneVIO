@@ -11,6 +11,7 @@ enum ConnectionStatus {
 enum MessageType: UInt8 {
     case sessionMetadata = 0
     case frameData = 1
+    case teleopCommand = 2
 }
 
 struct SessionMetadata: Encodable {
@@ -182,6 +183,18 @@ class NetworkClient {
             self?.isSending = false
             if let error = error {
                 print("Failed to send frame: \(error)")
+            }
+        })
+    }
+
+    func sendTeleopCommand(_ cmd: String) {
+        guard let conn = connection else { return }
+        let dict: [String: Any] = ["cmd": cmd, "ts": Date().timeIntervalSince1970]
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: dict) else { return }
+        let message = Self.wrapMessage(type: .teleopCommand, payload: jsonData)
+        conn.send(content: message, completion: .contentProcessed { error in
+            if let error = error {
+                print("Failed to send teleop command: \(error)")
             }
         })
     }
