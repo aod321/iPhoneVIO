@@ -60,7 +60,8 @@ class DataManagementController: ObservableObject {
         do {
             let (data, response) = try await sendRequest(URLRequest(url: url))
             guard (200..<300).contains(response.statusCode) else {
-                await setError(parseAPIError(from: data) ?? "获取列表失败 (\(response.statusCode))")
+                let apiErr = parseAPIError(from: data)
+                await setError(apiErr ?? "获取列表失败 (\(response.statusCode)) \(url.absoluteString)")
                 return
             }
             let result = try jsonDecoder.decode(RecordingsResponse.self, from: data)
@@ -73,7 +74,7 @@ class DataManagementController: ObservableObject {
                 self.selectedIds = self.selectedIds.intersection(existingIds)
             }
         } catch {
-            await setError("连接失败")
+            await setError("连接失败: \(error.localizedDescription)")
         }
     }
 
@@ -91,7 +92,6 @@ class DataManagementController: ObservableObject {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-
         do {
             let (data, response) = try await sendRequest(request)
             if (200..<300).contains(response.statusCode) {

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0FBE1CB9EE6AAFADE7136557 /* URDFParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20F56C0E666003D1DA3D77EF /* URDFParser.swift */; };
 		1F6E8FBA2BE89BAC00DD0DFA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6E8FB92BE89BAC00DD0DFA /* AppDelegate.swift */; };
 		1F6E8FBC2BE89BAC00DD0DFA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6E8FBB2BE89BAC00DD0DFA /* ContentView.swift */; };
 		1F6E8FBE2BE89BAD00DD0DFA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1F6E8FBD2BE89BAD00DD0DFA /* Assets.xcassets */; };
@@ -18,27 +19,26 @@
 		1F6E8FE82BE89BE400DD0DFA /* NetworkClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6E8FE42BE89BE400DD0DFA /* NetworkClient.swift */; };
 		1F6E8FE92BE89BE400DD0DFA /* ARManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6E8FE52BE89BE400DD0DFA /* ARManager.swift */; };
 		1F6E8FEA2BE89BE400DD0DFA /* ARSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6E8FE62BE89BE400DD0DFA /* ARSessionManager.swift */; };
-		AA0001022BE89BE400DD0DFA /* OrientationCubeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001012BE89BE400DD0DFA /* OrientationCubeView.swift */; };
-		BB0002022FE89BE400DD0DFA /* BonjourManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0002012FE89BE400DD0DFA /* BonjourManager.swift */; };
-		CC0003022FE89BE400DD0DFA /* RecordingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0003012FE89BE400DD0DFA /* RecordingController.swift */; };
-		DD0004022FE89BE400DD0DFA /* RecordingItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0004012FE89BE400DD0DFA /* RecordingItem.swift */; };
-		EE0005022FE89BE400DD0DFA /* DataManagementController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0005012FE89BE400DD0DFA /* DataManagementController.swift */; };
-		FF0006022FE89BE400DD0DFA /* DataManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0006012FE89BE400DD0DFA /* DataManagementView.swift */; };
-		C60F156BCCAB30F337E416B0 /* Pods_iPhoneVIOTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FCBD9B0D87942E8D561A1779 /* Pods_iPhoneVIOTests.framework */; };
-		CD4B63BF511C1AEA5309CA7A /* Pods_iPhoneVIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E023A5510CA7D9CA21F72D86 /* Pods_iPhoneVIO.framework */; };
-		E02FDF37472DB0A2C1B8AAA4 /* Pods_iPhoneVIO_iPhoneVIOUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 648FEE11F75FCDFE352BFC75 /* Pods_iPhoneVIO_iPhoneVIOUITests.framework */; };
-		F1B0CB6491B188E154D4771A /* RobotModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 759CDEFA7D12F0D696258603 /* RobotModel.swift */; };
-		0FBE1CB9EE6AAFADE7136557 /* URDFParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20F56C0E666003D1DA3D77EF /* URDFParser.swift */; };
-		EE7C4B3319F7E2791EE9D3EF /* IKSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89F5B20785166C9DA027ECB6 /* IKSolver.swift */; };
-		A00DDADDAC75BB46B8BF547D /* RobotRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77296FC2FAEC2FF0A12C445F /* RobotRenderer.swift */; };
 		8F187EB51CF2B34D2CAC0695 /* FeasibilityChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F071AAE3715F594F5F34D5D6 /* FeasibilityChecker.swift */; };
-		B1C2D3E400000001 /* SelfCollisionChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E400000002 /* SelfCollisionChecker.swift */; };
-		A7E7AEADA62E99660BE7A116 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C89BB8FCF2F95C5EFDC39F81 /* HapticManager.swift */; };
-		BB07B84B316BB9667BCC370F /* RM75 in Resources */ = {isa = PBXBuildFile; fileRef = C8965478D5912ACA61B0ED44 /* RM75 */; };
-		D1A2B3C4E5F6A7B800000001 /* gripper in Resources */ = {isa = PBXBuildFile; fileRef = D1A2B3C4E5F6A7B800000002 /* gripper */; };
+		A00DDADDAC75BB46B8BF547D /* RobotRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77296FC2FAEC2FF0A12C445F /* RobotRenderer.swift */; };
 		A1B2C3D400000002 /* ArucoDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000001 /* ArucoDetector.swift */; };
 		A1B2C3D400000004 /* ArucoDictionary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000003 /* ArucoDictionary.swift */; };
 		A1B2C3D400000006 /* PnPSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000005 /* PnPSolver.swift */; };
+		A7E7AEADA62E99660BE7A116 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C89BB8FCF2F95C5EFDC39F81 /* HapticManager.swift */; };
+		AA0001022BE89BE400DD0DFA /* OrientationCubeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001012BE89BE400DD0DFA /* OrientationCubeView.swift */; };
+		B1C2D3E400000001 /* SelfCollisionChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E400000002 /* SelfCollisionChecker.swift */; };
+		BB0002022FE89BE400DD0DFA /* BonjourManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0002012FE89BE400DD0DFA /* BonjourManager.swift */; };
+		BB07B84B316BB9667BCC370F /* RM75 in Resources */ = {isa = PBXBuildFile; fileRef = C8965478D5912ACA61B0ED44 /* RM75 */; };
+		C60F156BCCAB30F337E416B0 /* Pods_iPhoneVIOTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FCBD9B0D87942E8D561A1779 /* Pods_iPhoneVIOTests.framework */; };
+		CC0003022FE89BE400DD0DFA /* RecordingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0003012FE89BE400DD0DFA /* RecordingController.swift */; };
+		CD4B63BF511C1AEA5309CA7A /* Pods_iPhoneVIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E023A5510CA7D9CA21F72D86 /* Pods_iPhoneVIO.framework */; };
+		D1A2B3C4E5F6A7B800000001 /* gripper in Resources */ = {isa = PBXBuildFile; fileRef = D1A2B3C4E5F6A7B800000002 /* gripper */; };
+		DD0004022FE89BE400DD0DFA /* RecordingItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0004012FE89BE400DD0DFA /* RecordingItem.swift */; };
+		E02FDF37472DB0A2C1B8AAA4 /* Pods_iPhoneVIO_iPhoneVIOUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 648FEE11F75FCDFE352BFC75 /* Pods_iPhoneVIO_iPhoneVIOUITests.framework */; };
+		EE0005022FE89BE400DD0DFA /* DataManagementController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0005012FE89BE400DD0DFA /* DataManagementController.swift */; };
+		EE7C4B3319F7E2791EE9D3EF /* IKSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89F5B20785166C9DA027ECB6 /* IKSolver.swift */; };
+		F1B0CB6491B188E154D4771A /* RobotModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 759CDEFA7D12F0D696258603 /* RobotModel.swift */; };
+		FF0006022FE89BE400DD0DFA /* DataManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0006012FE89BE400DD0DFA /* DataManagementView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -76,31 +76,31 @@
 		1F6E8FE42BE89BE400DD0DFA /* NetworkClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkClient.swift; sourceTree = "<group>"; };
 		1F6E8FE52BE89BE400DD0DFA /* ARManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ARManager.swift; sourceTree = "<group>"; };
 		1F6E8FE62BE89BE400DD0DFA /* ARSessionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ARSessionManager.swift; sourceTree = "<group>"; };
-		AA0001012BE89BE400DD0DFA /* OrientationCubeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationCubeView.swift; sourceTree = "<group>"; };
-		BB0002012FE89BE400DD0DFA /* BonjourManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonjourManager.swift; sourceTree = "<group>"; };
-		CC0003012FE89BE400DD0DFA /* RecordingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingController.swift; sourceTree = "<group>"; };
-		DD0004012FE89BE400DD0DFA /* RecordingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingItem.swift; sourceTree = "<group>"; };
-		EE0005012FE89BE400DD0DFA /* DataManagementController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataManagementController.swift; sourceTree = "<group>"; };
-		FF0006012FE89BE400DD0DFA /* DataManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataManagementView.swift; sourceTree = "<group>"; };
-		BB0002032FE89BE400DD0DFA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		648FEE11F75FCDFE352BFC75 /* Pods_iPhoneVIO_iPhoneVIOUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iPhoneVIO_iPhoneVIOUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		A3F26058A35793C601D624AF /* Pods-iPhoneVIOTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iPhoneVIOTests.release.xcconfig"; path = "Target Support Files/Pods-iPhoneVIOTests/Pods-iPhoneVIOTests.release.xcconfig"; sourceTree = "<group>"; };
-		A6579A51E02AD9F16DCD0913 /* Pods-iPhoneVIO-iPhoneVIOUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iPhoneVIO-iPhoneVIOUITests.release.xcconfig"; path = "Target Support Files/Pods-iPhoneVIO-iPhoneVIOUITests/Pods-iPhoneVIO-iPhoneVIOUITests.release.xcconfig"; sourceTree = "<group>"; };
-		BE3FBEE8296BDA811BF1F5D3 /* Pods-iPhoneVIO-iPhoneVIOUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iPhoneVIO-iPhoneVIOUITests.debug.xcconfig"; path = "Target Support Files/Pods-iPhoneVIO-iPhoneVIOUITests/Pods-iPhoneVIO-iPhoneVIOUITests.debug.xcconfig"; sourceTree = "<group>"; };
-		E023A5510CA7D9CA21F72D86 /* Pods_iPhoneVIO.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iPhoneVIO.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		FCBD9B0D87942E8D561A1779 /* Pods_iPhoneVIOTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iPhoneVIOTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		759CDEFA7D12F0D696258603 /* RobotModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RobotModel.swift; sourceTree = "<group>"; };
 		20F56C0E666003D1DA3D77EF /* URDFParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URDFParser.swift; sourceTree = "<group>"; };
-		89F5B20785166C9DA027ECB6 /* IKSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IKSolver.swift; sourceTree = "<group>"; };
+		648FEE11F75FCDFE352BFC75 /* Pods_iPhoneVIO_iPhoneVIOUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iPhoneVIO_iPhoneVIOUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		759CDEFA7D12F0D696258603 /* RobotModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RobotModel.swift; sourceTree = "<group>"; };
 		77296FC2FAEC2FF0A12C445F /* RobotRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RobotRenderer.swift; sourceTree = "<group>"; };
-		F071AAE3715F594F5F34D5D6 /* FeasibilityChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeasibilityChecker.swift; sourceTree = "<group>"; };
-		B1C2D3E400000002 /* SelfCollisionChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCollisionChecker.swift; sourceTree = "<group>"; };
-		C89BB8FCF2F95C5EFDC39F81 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
-		C8965478D5912ACA61B0ED44 /* RM75 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = RM75; path = Resources/RM75; sourceTree = "<group>"; };
-		D1A2B3C4E5F6A7B800000002 /* gripper */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gripper; path = Resources/gripper; sourceTree = "<group>"; };
+		89F5B20785166C9DA027ECB6 /* IKSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IKSolver.swift; sourceTree = "<group>"; };
 		A1B2C3D400000001 /* ArucoDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArucoDetector.swift; sourceTree = "<group>"; };
 		A1B2C3D400000003 /* ArucoDictionary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArucoDictionary.swift; sourceTree = "<group>"; };
 		A1B2C3D400000005 /* PnPSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PnPSolver.swift; sourceTree = "<group>"; };
+		A3F26058A35793C601D624AF /* Pods-iPhoneVIOTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iPhoneVIOTests.release.xcconfig"; path = "Target Support Files/Pods-iPhoneVIOTests/Pods-iPhoneVIOTests.release.xcconfig"; sourceTree = "<group>"; };
+		A6579A51E02AD9F16DCD0913 /* Pods-iPhoneVIO-iPhoneVIOUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iPhoneVIO-iPhoneVIOUITests.release.xcconfig"; path = "Target Support Files/Pods-iPhoneVIO-iPhoneVIOUITests/Pods-iPhoneVIO-iPhoneVIOUITests.release.xcconfig"; sourceTree = "<group>"; };
+		AA0001012BE89BE400DD0DFA /* OrientationCubeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationCubeView.swift; sourceTree = "<group>"; };
+		B1C2D3E400000002 /* SelfCollisionChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCollisionChecker.swift; sourceTree = "<group>"; };
+		BB0002012FE89BE400DD0DFA /* BonjourManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonjourManager.swift; sourceTree = "<group>"; };
+		BB0002032FE89BE400DD0DFA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BE3FBEE8296BDA811BF1F5D3 /* Pods-iPhoneVIO-iPhoneVIOUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iPhoneVIO-iPhoneVIOUITests.debug.xcconfig"; path = "Target Support Files/Pods-iPhoneVIO-iPhoneVIOUITests/Pods-iPhoneVIO-iPhoneVIOUITests.debug.xcconfig"; sourceTree = "<group>"; };
+		C8965478D5912ACA61B0ED44 /* RM75 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = RM75; path = Resources/RM75; sourceTree = "<group>"; };
+		C89BB8FCF2F95C5EFDC39F81 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
+		CC0003012FE89BE400DD0DFA /* RecordingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingController.swift; sourceTree = "<group>"; };
+		D1A2B3C4E5F6A7B800000002 /* gripper */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gripper; path = Resources/gripper; sourceTree = "<group>"; };
+		DD0004012FE89BE400DD0DFA /* RecordingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingItem.swift; sourceTree = "<group>"; };
+		E023A5510CA7D9CA21F72D86 /* Pods_iPhoneVIO.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iPhoneVIO.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		EE0005012FE89BE400DD0DFA /* DataManagementController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataManagementController.swift; sourceTree = "<group>"; };
+		F071AAE3715F594F5F34D5D6 /* FeasibilityChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeasibilityChecker.swift; sourceTree = "<group>"; };
+		FCBD9B0D87942E8D561A1779 /* Pods_iPhoneVIOTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iPhoneVIOTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		FF0006012FE89BE400DD0DFA /* DataManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataManagementView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -622,6 +622,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"iPhoneVIO/Preview Content\"";
@@ -637,6 +638,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.inz.iPhoneVIO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -649,6 +651,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"iPhoneVIO/Preview Content\"";
@@ -664,6 +667,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.inz.iPhoneVIO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

@@ -73,6 +73,70 @@ When clutch is engaged, `clutchCameraRef` and `clutchEERef` snapshot the current
 ### Recording Management
 `RecordingController` polls `rapid_driver` HTTP API every 2s for device ready status. `DataManagementController` handles recordings CRUD and replay. See `docs/recording_management_api.md` for the full API spec.
 
+### Communication with rapid_driver (Raspberry Pi)
+
+The iPhone communicates with `rapid_driver` (a Rust device orchestration daemon, typically on a Raspberry Pi) through three channels: mDNS discovery, TCP binary streaming, and HTTP REST API.
+
+#### mDNS Service Discovery (`BonjourManager.swift`)
+
+| Direction | Service Type | Purpose |
+|-----------|-------------|---------|
+| **Advertise** | `_iphonevio._tcp` | Phone announces itself; rapid_driver discovers and spawns `node_iphone` process |
+| **Browse** | `_vioserver._tcp` | Discover TCP data streaming servers; auto-connect via `NetworkClient` |
+| **Browse** | `_rapiddriver._tcp` | Discover rapid_driver HTTP API (default port 7400); resolves to `rapidDriverURL` |
+
+iPhone advertises with service name `"{deviceModel}-iPhoneVIO"` and TXT records: `sessionId`, `deviceModel`, `appVersion`. The `_rapiddriver._tcp` resolver forces IPv4 (`ipOptions.version = .v4`) to avoid link-local IPv6 issues.
+
+#### TCP Binary Stream Pipeline
+
+Full data path: iPhone → TCP → `node_iphone` process → msgpack → ZMQ PUB (`tcp://127.0.0.1:5563`) → RecorderCore ZMQ SUB → MCAP file.
+
+`NetworkClient.swift` uses `NWConnection` with TCP `noDelay = true`. Backpressure: frames are dropped if `isSending` is true. The binary frame format is documented above in "Core Data Flow: VIO Streaming".
+
+On the rapid_driver side:
+1. rapid_driver discovers `_iphonevio._tcp` and spawns `node_iphone` with env var `DEVICE_ADDR={ip}:{port}`
+2. `node_iphone` connects to iPhone's TCP port, decodes binary frames, re-encodes as msgpack
+3. `node_iphone` publishes on a ZMQ PUB socket (default port 5563, configurable via `--data-port`)
+4. During recording, rapid_driver's RecorderCore subscribes via ZMQ SUB and writes to MCAP (Zstd compression)
+5. Heartbeat: `node_iphone` writes JSON to `~/.local/state/rapid_driver/heartbeat/{device_name}.json` (stale threshold 3s)
+
+#### HTTP API Endpoints (called by iOS)
+
+All endpoints use `baseURL` resolved from `_rapiddriver._tcp` Bonjour discovery. Error responses: `{"error": "..."}`.
+
+**RecordingController.swift** (polls every 2s):
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/ready` | Device readiness: `{"ready": bool, "online": int, "total": int}` |
+| `GET` | `/devices` | Device node status list (name, discovered, heartbeat_ok, process_running, pid, backend, address) |
+| `POST` | `/recording/start` | Start recording: `{"session_id": "<UUID>"}` |
+| `POST` | `/recording/stop` | Stop recording: `{}` |
+| `POST` | `/devices/{name}/restart` | Restart a device node (blocked during recording) |
+
+**DataManagementController.swift** (replay polls every 1s):
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/recordings` | List recordings with disk usage: `{recordings: [...], total_size_bytes, disk_free_bytes}` |
+| `DELETE` | `/recordings/{session_id}` | Delete single recording |
+| `POST` | `/recordings/delete_batch` | Batch delete: `{"session_ids": [...]}` |
+| `POST` | `/recordings/{session_id}/replay` | Start replay: `{}` |
+| `POST` | `/replay/stop` | Stop replay: `{}` |
+| `GET` | `/replay/status` | Replay progress: `{active, progress, elapsed_secs, total_secs, speed}` |
+
+#### rapid_driver Registry Configuration
+
+iPhone is registered as an mDNS device in `~/.config/rapid_driver/registry.toml`:
+```toml
+[[device]]
+name = "iphone"
+backend = "mdns"
+service_type = "_iphonevio._tcp.local."
+on_attach = "node_iphone --data-port 5563"
+sensor_type = "video"
+```
+
 ## Project Structure
 
 ```
