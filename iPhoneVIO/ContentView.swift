@@ -872,19 +872,20 @@ struct FeasibleCapControlPanel: View {
             Button {
                 ARManager.shared.actionStream.send(.toggleClutch)
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     Image(systemName: viewController.isClutchEngaged ? "lock.fill" : "lock.open")
-                        .font(.system(size: 11))
+                        .font(.system(size: 13))
                     Text(viewController.isClutchEngaged ? "Release" : "Lock")
-                        .font(.system(size: 11, weight: .medium).monospaced())
+                        .font(.system(size: 13, weight: .semibold).monospaced())
                 }
                 .foregroundColor(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(viewController.isClutchEngaged ? Color.green.opacity(0.4) : Color.white.opacity(0.16))
-                .cornerRadius(6)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(viewController.isClutchEngaged ? Color.green.opacity(0.45) : Color.white.opacity(0.2))
+                .cornerRadius(8)
             }
             .buttonStyle(.plain)
+            .padding(.top, 2)
             .disabled(!viewController.robotBasePlaced || viewController.isPlacingBaseMode)
             .opacity((viewController.robotBasePlaced && !viewController.isPlacingBaseMode) ? 1.0 : 0.4)
 

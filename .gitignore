@@ -2,12 +2,30 @@
 .DS_Store
 *.xcuserstate
 
-# Data files
+# Xcode
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+build/
+DerivedData/
+
+# CocoaPods (Pods/ is committed per cocoapods convention, don't ignore)
+
+# Data & recordings
 *.mcap
 data/
 
-# Analysis output
+# Paper & analysis (not part of the iOS project)
+paper_figures/
+fig4_package/
 analysis_output/
+data_analysis/
+scripts/
+docs/
+
+# Server scripts
+node_iphone.py
+socketio_server.py
 
 # Python
 .venv/
